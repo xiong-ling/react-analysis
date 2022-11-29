@@ -1,5 +1,5 @@
 /**
- * Copyright (c) Meta Platforms, Inc. and affiliates.
+ * Copyright (c) Facebook, Inc. and its affiliates.
  *
  * This source code is licensed under the MIT license found in the
  * LICENSE file in the root directory of this source tree.
@@ -8,7 +8,6 @@
  */
 
 import type {ReactContext} from 'shared/ReactTypes';
-import type {Fiber} from 'react-reconciler/src/ReactInternalTypes';
 
 import {enableCache} from 'shared/ReactFeatureFlags';
 import {REACT_CONTEXT_TYPE} from 'shared/ReactSymbols';
@@ -18,7 +17,7 @@ import * as Scheduler from 'scheduler';
 
 // In environments without AbortController (e.g. tests)
 // replace it with a lightweight shim that only has the features we use.
-const AbortControllerLocal: typeof AbortController = enableCache
+const AbortControllerLocal = enableCache
   ? typeof AbortController !== 'undefined'
     ? AbortController
     : (function AbortControllerShim() {
@@ -37,21 +36,21 @@ const AbortControllerLocal: typeof AbortController = enableCache
       }: AbortController)
   : (null: any);
 
-export type Cache = {
+export type Cache = {|
   controller: AbortControllerLocal,
   data: Map<() => mixed, mixed>,
   refCount: number,
-};
+|};
 
-export type CacheComponentState = {
+export type CacheComponentState = {|
   +parent: Cache,
   +cache: Cache,
-};
+|};
 
-export type SpawnedCachePool = {
+export type SpawnedCachePool = {|
   +parent: Cache,
   +pool: Cache,
-};
+|};
 
 // Intentionally not named imports because Rollup would
 // use dynamic dispatch for CommonJS interop named imports.

@@ -1,5 +1,5 @@
 /**
- * Copyright (c) Meta Platforms, Inc. and affiliates.
+ * Copyright (c) Facebook, Inc. and its affiliates.
  *
  * This source code is licensed under the MIT license found in the
  * LICENSE file in the root directory of this source tree.
@@ -30,9 +30,7 @@ let createHierarchy;
 let getHostNode;
 let getHostProps;
 let lastNonHostInstance;
-let getInspectorDataForInstance: (
-  closestInstance: Fiber | null,
-) => InspectorData;
+let getInspectorDataForInstance;
 let getOwnerHierarchy;
 let traverseOwnerTreeUp;
 
@@ -112,7 +110,6 @@ if (__DEV__ || enableGetInspectorDataForInstanceInProduction) {
     const selectedIndex = fiberHierarchy.indexOf(instance);
 
     return {
-      closestInstance: instance,
       hierarchy,
       props,
       selectedIndex,
@@ -145,14 +142,8 @@ if (__DEV__ || enableGetInspectorDataForInstanceInProduction) {
   };
 }
 
-let getInspectorDataForViewTag: (viewTag: number) => Object;
-let getInspectorDataForViewAtPoint: (
-  findNodeHandle: (componentOrHandle: any) => ?number,
-  inspectedView: Object,
-  locationX: number,
-  locationY: number,
-  callback: (viewData: TouchedViewDataAtPoint) => mixed,
-) => void;
+let getInspectorDataForViewTag;
+let getInspectorDataForViewAtPoint;
 
 if (__DEV__) {
   getInspectorDataForViewTag = function(viewTag: number): Object {

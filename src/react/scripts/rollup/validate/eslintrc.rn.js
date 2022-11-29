@@ -14,7 +14,6 @@ module.exports = {
     WeakMap: 'readonly',
     WeakSet: 'readonly',
     Reflect: 'readonly',
-    globalThis: 'readonly',
     // Vendor specific
     MSApp: 'readonly',
     __REACT_DEVTOOLS_GLOBAL_HOOK__: 'readonly',
@@ -33,9 +32,6 @@ module.exports = {
 
     TaskController: 'readonly',
     reportError: 'readonly',
-
-    // Temp
-    AsyncLocalStorage: 'readonly',
 
     // jest
     jest: 'readonly',

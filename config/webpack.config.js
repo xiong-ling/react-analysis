@@ -328,7 +328,6 @@ module.exports = function (webpackEnv) {
         'react-dom': path.join(paths.appSrc, 'react/packages/react-dom'),
         shared: path.join(paths.appSrc, 'react/packages/shared'),
         'react-reconciler': path.join(paths.appSrc, 'react/packages/react-reconciler'),
-        "react-dom-bindings": path.join(paths.appSrc, 'react/packages/react-dom-bindings'),
         scheduler: path.join(paths.appSrc, 'react/packages/scheduler'),
       },
       plugins: [

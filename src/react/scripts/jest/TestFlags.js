@@ -48,7 +48,6 @@ const environmentFlags = {
 
   // Use this for tests that are known to be broken.
   FIXME: false,
-  TODO: false,
 
   // Turn these flags back on (or delete) once the effect list is removed in
   // favor of a depth-first traversal using `subtreeTags`.
@@ -88,8 +87,6 @@ function getTestFlags() {
       // This isn't a flag, just a useful alias for tests.
       enableUseSyncExternalStoreShim: !__VARIANT__,
       enableSuspenseList: releaseChannel === 'experimental' || www,
-      enableOffscreen: releaseChannel === 'experimental' || www,
-      enableLegacyHidden: www,
 
       // If there's a naming conflict between scheduler and React feature flags, the
       // React ones take precedence.

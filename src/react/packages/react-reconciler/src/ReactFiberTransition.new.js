@@ -1,12 +1,12 @@
 /**
- * Copyright (c) Meta Platforms, Inc. and affiliates.
+ * Copyright (c) Facebook, Inc. and its affiliates.
  *
  * This source code is licensed under the MIT license found in the
  * LICENSE file in the root directory of this source tree.
  *
  * @flow
  */
-import type {Fiber, FiberRoot} from './ReactInternalTypes';
+import type {FiberRoot} from './ReactInternalTypes';
 import type {Lanes} from './ReactFiberLane.new';
 import type {StackCursor} from './ReactFiberStack.new';
 import type {Cache, SpawnedCachePool} from './ReactFiberCacheComponent.new';
@@ -139,17 +139,17 @@ export function pushTransition(
 
 export function popTransition(workInProgress: Fiber, current: Fiber | null) {
   if (current !== null) {
-    if (enableTransitionTracing) {
-      pop(transitionStack, workInProgress);
-    }
-
     if (enableCache) {
       pop(resumedCache, workInProgress);
+    }
+
+    if (enableTransitionTracing) {
+      pop(transitionStack, workInProgress);
     }
   }
 }
 
-export function getPendingTransitions(): Array<Transition> | null {
+export function getSuspendedTransitions(): Array<Transition> | null {
   if (!enableTransitionTracing) {
     return null;
   }

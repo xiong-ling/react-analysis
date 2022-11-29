@@ -1,5 +1,5 @@
 /**
- * Copyright (c) Meta Platforms, Inc. and affiliates.
+ * Copyright (c) Facebook, Inc. and its affiliates.
  *
  * This source code is licensed under the MIT license found in the
  * LICENSE file in the root directory of this source tree.
@@ -19,17 +19,11 @@ import type {
   OffscreenProps,
   OffscreenInstance,
 } from './ReactFiberOffscreenComponent';
-import type {TracingMarkerInstance} from './ReactFiberTracingMarkerComponent.old';
 
-import {
-  supportsResources,
-  supportsSingletons,
-  isHostResourceType,
-  isHostSingletonType,
-} from './ReactFiberHostConfig';
 import {
   createRootStrictEffectsByDefault,
   enableCache,
+  enableStrictEffects,
   enableProfilerTimer,
   enableScopeAPI,
   enableLegacyHidden,
@@ -37,8 +31,6 @@ import {
   allowConcurrentByDefault,
   enableTransitionTracing,
   enableDebugTracing,
-  enableFloat,
-  enableHostSingletons,
 } from 'shared/ReactFeatureFlags';
 import {NoFlags, Placement, StaticMask} from './ReactFiberFlags';
 import {ConcurrentRoot} from './ReactRootTags';
@@ -49,8 +41,6 @@ import {
   HostComponent,
   HostText,
   HostPortal,
-  HostResource,
-  HostSingleton,
   ForwardRef,
   Fragment,
   Mode,
@@ -70,8 +60,8 @@ import {
   CacheComponent,
   TracingMarkerComponent,
 } from './ReactWorkTags';
-import {OffscreenVisible} from './ReactFiberOffscreenComponent';
 import getComponentNameFromFiber from 'react-reconciler/src/getComponentNameFromFiber';
+
 import {isDevToolsPresent} from './ReactFiberDevToolsHook.old';
 import {
   resolveClassForHotReloading,
@@ -106,9 +96,6 @@ import {
   REACT_CACHE_TYPE,
   REACT_TRACING_MARKER_TYPE,
 } from 'shared/ReactSymbols';
-import {TransitionTracingMarker} from './ReactFiberTracingMarkerComponent.old';
-import {detachOffscreenInstance} from './ReactFiberCommitWork.old';
-import {getHostContext} from './ReactFiberHostContext.old';
 
 export type {Fiber};
 
@@ -235,7 +222,7 @@ function shouldConstruct(Component: Function) {
   return !!(prototype && prototype.isReactComponent);
 }
 
-export function isSimpleFunctionComponent(type: any): boolean {
+export function isSimpleFunctionComponent(type: any) {
   return (
     typeof type === 'function' &&
     !shouldConstruct(type) &&
@@ -365,10 +352,7 @@ export function createWorkInProgress(current: Fiber, pendingProps: any): Fiber {
 }
 
 // Used to reuse a Fiber for a second pass.
-export function resetWorkInProgress(
-  workInProgress: Fiber,
-  renderLanes: Lanes,
-): Fiber {
+export function resetWorkInProgress(workInProgress: Fiber, renderLanes: Lanes) {
   // This resets the Fiber to what createFiber or createWorkInProgress would
   // have set the values to before during the first pass. Ideally this wouldn't
   // be necessary but unfortunately many code paths reads from the workInProgress
@@ -449,7 +433,13 @@ export function createHostRootFiber(
   let mode;
   if (tag === ConcurrentRoot) {
     mode = ConcurrentMode;
-    if (isStrictMode === true || createRootStrictEffectsByDefault) {
+    if (isStrictMode === true) {
+      mode |= StrictLegacyMode;
+
+      if (enableStrictEffects) {
+        mode |= StrictEffectsMode;
+      }
+    } else if (enableStrictEffects && createRootStrictEffectsByDefault) {
       mode |= StrictLegacyMode | StrictEffectsMode;
     }
     if (
@@ -498,28 +488,7 @@ export function createFiberFromTypeAndProps(
       }
     }
   } else if (typeof type === 'string') {
-    if (
-      enableFloat &&
-      supportsResources &&
-      enableHostSingletons &&
-      supportsSingletons
-    ) {
-      const hostContext = getHostContext();
-      fiberTag = isHostResourceType(type, pendingProps, hostContext)
-        ? HostResource
-        : isHostSingletonType(type)
-        ? HostSingleton
-        : HostComponent;
-    } else if (enableFloat && supportsResources) {
-      const hostContext = getHostContext();
-      fiberTag = isHostResourceType(type, pendingProps, hostContext)
-        ? HostResource
-        : HostComponent;
-    } else if (enableHostSingletons && supportsSingletons) {
-      fiberTag = isHostSingletonType(type) ? HostSingleton : HostComponent;
-    } else {
-      fiberTag = HostComponent;
-    }
+    fiberTag = HostComponent;
   } else {
     getTag: switch (type) {
       case REACT_FRAGMENT_TYPE:
@@ -527,7 +496,7 @@ export function createFiberFromTypeAndProps(
       case REACT_STRICT_MODE_TYPE:
         fiberTag = Mode;
         mode |= StrictLegacyMode;
-        if ((mode & ConcurrentMode) !== NoMode) {
+        if (enableStrictEffects && (mode & ConcurrentMode) !== NoMode) {
           // Strict effects should never run on legacy roots
           mode |= StrictEffectsMode;
         }
@@ -718,7 +687,7 @@ export function createFiberFromSuspense(
   mode: TypeOfMode,
   lanes: Lanes,
   key: null | string,
-): Fiber {
+) {
   const fiber = createFiber(SuspenseComponent, pendingProps, key, mode);
   fiber.elementType = REACT_SUSPENSE_TYPE;
   fiber.lanes = lanes;
@@ -730,7 +699,7 @@ export function createFiberFromSuspenseList(
   mode: TypeOfMode,
   lanes: Lanes,
   key: null | string,
-): Fiber {
+) {
   const fiber = createFiber(SuspenseListComponent, pendingProps, key, mode);
   fiber.elementType = REACT_SUSPENSE_LIST_TYPE;
   fiber.lanes = lanes;
@@ -742,17 +711,12 @@ export function createFiberFromOffscreen(
   mode: TypeOfMode,
   lanes: Lanes,
   key: null | string,
-): Fiber {
+) {
   const fiber = createFiber(OffscreenComponent, pendingProps, key, mode);
   fiber.elementType = REACT_OFFSCREEN_TYPE;
   fiber.lanes = lanes;
   const primaryChildInstance: OffscreenInstance = {
-    _visibility: OffscreenVisible,
-    _pendingMarkers: null,
-    _retryCache: null,
-    _transitions: null,
-    _current: null,
-    detach: () => detachOffscreenInstance(primaryChildInstance),
+    isHidden: false,
   };
   fiber.stateNode = primaryChildInstance;
   return fiber;
@@ -763,21 +727,10 @@ export function createFiberFromLegacyHidden(
   mode: TypeOfMode,
   lanes: Lanes,
   key: null | string,
-): Fiber {
+) {
   const fiber = createFiber(LegacyHiddenComponent, pendingProps, key, mode);
   fiber.elementType = REACT_LEGACY_HIDDEN_TYPE;
   fiber.lanes = lanes;
-  // Adding a stateNode for legacy hidden because it's currently using
-  // the offscreen implementation, which depends on a state node
-  const instance: OffscreenInstance = {
-    _visibility: OffscreenVisible,
-    _pendingMarkers: null,
-    _transitions: null,
-    _retryCache: null,
-    _current: null,
-    detach: () => detachOffscreenInstance(instance),
-  };
-  fiber.stateNode = instance;
   return fiber;
 }
 
@@ -786,7 +739,7 @@ export function createFiberFromCache(
   mode: TypeOfMode,
   lanes: Lanes,
   key: null | string,
-): Fiber {
+) {
   const fiber = createFiber(CacheComponent, pendingProps, key, mode);
   fiber.elementType = REACT_CACHE_TYPE;
   fiber.lanes = lanes;
@@ -798,18 +751,10 @@ export function createFiberFromTracingMarker(
   mode: TypeOfMode,
   lanes: Lanes,
   key: null | string,
-): Fiber {
+) {
   const fiber = createFiber(TracingMarkerComponent, pendingProps, key, mode);
   fiber.elementType = REACT_TRACING_MARKER_TYPE;
   fiber.lanes = lanes;
-  const tracingMarkerInstance: TracingMarkerInstance = {
-    tag: TransitionTracingMarker,
-    transitions: null,
-    pendingBoundaries: null,
-    aborts: null,
-    name: pendingProps.name,
-  };
-  fiber.stateNode = tracingMarkerInstance;
   return fiber;
 }
 

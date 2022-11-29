@@ -1,5 +1,5 @@
 /**
- * Copyright (c) Meta Platforms, Inc. and affiliates.
+ * Copyright (c) Facebook, Inc. and its affiliates.
  *
  * This source code is licensed under the MIT license found in the
  * LICENSE file in the root directory of this source tree.
@@ -48,7 +48,7 @@ export function flushSyncCallbacksOnlyInLegacyMode() {
   }
 }
 
-export function flushSyncCallbacks(): null {
+export function flushSyncCallbacks() {
   if (!isFlushingSyncQueue && syncQueue !== null) {
     // Prevent re-entrance.
     isFlushingSyncQueue = true;
@@ -60,12 +60,9 @@ export function flushSyncCallbacks(): null {
       // TODO: Is this necessary anymore? The only user code that runs in this
       // queue is in the render or commit phases.
       setCurrentUpdatePriority(DiscreteEventPriority);
-      // $FlowFixMe[incompatible-use] found when upgrading Flow
       for (; i < queue.length; i++) {
-        // $FlowFixMe[incompatible-use] found when upgrading Flow
-        let callback: SchedulerCallback = queue[i];
+        let callback = queue[i];
         do {
-          // $FlowFixMe[incompatible-type] we bail out when we get a null
           callback = callback(isSync);
         } while (callback !== null);
       }

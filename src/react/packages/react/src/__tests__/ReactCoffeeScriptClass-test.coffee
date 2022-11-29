@@ -1,5 +1,5 @@
 ###
-Copyright (c) Meta Platforms, Inc. and affiliates.
+Copyright (c) Facebook, Inc. and its affiliates.
 
 This source code is licensed under the MIT license found in the
 LICENSE file in the root directory of this source tree.
@@ -9,7 +9,6 @@ PropTypes = null
 React = null
 ReactDOM = null
 ReactDOMClient = null
-ReactFeatureFlags = null
 act = null
 
 describe 'ReactCoffeeScriptClass', ->
@@ -23,7 +22,6 @@ describe 'ReactCoffeeScriptClass', ->
     React = require 'react'
     ReactDOM = require 'react-dom'
     ReactDOMClient = require 'react-dom/client'
-    ReactFeatureFlags = require 'shared/ReactFeatureFlags'
     act = require('jest-react').act
     PropTypes = require 'prop-types'
     container = document.createElement 'div'
@@ -530,7 +528,7 @@ describe 'ReactCoffeeScriptClass', ->
 
     test React.createElement(Foo), 'DIV', 'bar-through-context'
 
-  it 'supports string refs', ->
+  it 'supports classic refs', ->
     class Foo extends React.Component
       render: ->
         React.createElement(InnerComponent,
@@ -539,19 +537,7 @@ describe 'ReactCoffeeScriptClass', ->
         )
 
     ref = React.createRef()
-    expect(->
-      test(React.createElement(Foo, ref: ref), 'DIV', 'foo')
-    ).toErrorDev(
-      if ReactFeatureFlags.warnAboutStringRefs
-      then [
-        'Warning: Component "Foo" contains the string ref "inner". ' +
-          'Support for string refs will be removed in a future major release. ' +
-          'We recommend using useRef() or createRef() instead. ' +
-          'Learn more about using refs safely here: https://reactjs.org/link/strict-mode-string-ref\n' +
-          '    in Foo (at **)'
-      ]
-      else []
-    );
+    test(React.createElement(Foo, ref: ref), 'DIV', 'foo')
     expect(ref.current.refs.inner.getName()).toBe 'foo'
 
   it 'supports drilling through to the DOM using findDOMNode', ->

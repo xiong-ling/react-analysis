@@ -1,5 +1,5 @@
 /**
- * Copyright (c) Meta Platforms, Inc. and affiliates.
+ * Copyright (c) Facebook, Inc. and its affiliates.
  *
  * This source code is licensed under the MIT license found in the
  * LICENSE file in the root directory of this source tree.
@@ -8,7 +8,7 @@
  */
 
 import type {HostComponent} from './ReactNativeTypes';
-import type {ReactPortal, ReactNodeList} from 'shared/ReactTypes';
+import type {ReactNodeList} from 'shared/ReactTypes';
 import type {ElementRef, Element, ElementType} from 'react';
 
 import './ReactFabricInjection';
@@ -23,6 +23,7 @@ import {
   injectIntoDevTools,
   getPublicRootInstance,
 } from 'react-reconciler/src/ReactFiberReconciler';
+import {getInspectorDataForInstance} from './ReactNativeFiberInspector';
 
 import {createPortal as createPortalImpl} from 'react-reconciler/src/ReactPortal';
 import {setBatchingImplementation} from './legacy-events/ReactGenericBatching';
@@ -38,7 +39,6 @@ import {getClosestInstanceFromNode} from './ReactFabricComponentTree';
 import {
   getInspectorDataForViewTag,
   getInspectorDataForViewAtPoint,
-  getInspectorDataForInstance,
 } from './ReactNativeFiberInspector';
 import {LegacyRoot, ConcurrentRoot} from 'react-reconciler/src/ReactRootTags';
 import ReactSharedInternals from 'shared/ReactSharedInternals';
@@ -69,14 +69,14 @@ function findHostInstance_DEPRECATED<TElementType: ElementType>(
   if (componentOrHandle == null) {
     return null;
   }
-  // $FlowFixMe Flow has hardcoded values for React DOM that don't work with RN
+  // $FlowIssue Flow has hardcoded values for React DOM that don't work with RN
   if (componentOrHandle._nativeTag) {
-    // $FlowFixMe Flow has hardcoded values for React DOM that don't work with RN
+    // $FlowIssue Flow has hardcoded values for React DOM that don't work with RN
     return componentOrHandle;
   }
-  // $FlowFixMe Flow has hardcoded values for React DOM that don't work with RN
+  // $FlowIssue Flow has hardcoded values for React DOM that don't work with RN
   if (componentOrHandle.canonical && componentOrHandle.canonical._nativeTag) {
-    // $FlowFixMe Flow has hardcoded values for React DOM that don't work with RN
+    // $FlowIssue Flow has hardcoded values for React DOM that don't work with RN
     return componentOrHandle.canonical;
   }
   let hostInstance;
@@ -97,7 +97,6 @@ function findHostInstance_DEPRECATED<TElementType: ElementType>(
     return (hostInstance: any).canonical;
   }
   // $FlowFixMe[incompatible-return]
-  // $FlowFixMe[incompatible-exact]
   return hostInstance;
 }
 
@@ -227,7 +226,7 @@ function render(
   }
   updateContainer(element, root, null, callback);
 
-  // $FlowFixMe Flow has hardcoded values for React DOM that don't work with RN
+  // $FlowIssue Flow has hardcoded values for React DOM that don't work with RN
   return getPublicRootInstance(root);
 }
 
@@ -249,7 +248,7 @@ function createPortal(
   children: ReactNodeList,
   containerTag: number,
   key: ?string = null,
-): ReactPortal {
+) {
   return createPortalImpl(children, containerTag, null, key);
 }
 

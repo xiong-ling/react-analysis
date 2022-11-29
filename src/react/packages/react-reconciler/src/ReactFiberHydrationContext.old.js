@@ -1,5 +1,5 @@
 /**
- * Copyright (c) Meta Platforms, Inc. and affiliates.
+ * Copyright (c) Facebook, Inc. and its affiliates.
  *
  * This source code is licensed under the MIT license found in the
  * LICENSE file in the root directory of this source tree.
@@ -23,7 +23,6 @@ import type {CapturedValue} from './ReactCapturedValue';
 
 import {
   HostComponent,
-  HostSingleton,
   HostText,
   HostRoot,
   SuspenseComponent,
@@ -35,7 +34,6 @@ import {
   NoFlags,
   DidCapture,
 } from './ReactFiberFlags';
-import {enableHostSingletons, enableFloat} from 'shared/ReactFeatureFlags';
 
 import {
   createFiberFromHostInstanceForDeletion,
@@ -44,8 +42,6 @@ import {
 import {
   shouldSetTextContent,
   supportsHydration,
-  supportsSingletons,
-  isHydratable,
   canHydrateInstance,
   canHydrateTextInstance,
   canHydrateSuspenseInstance,
@@ -72,7 +68,6 @@ import {
   didNotFindHydratableInstance,
   didNotFindHydratableTextInstance,
   didNotFindHydratableSuspenseInstance,
-  resolveSingletonInstance,
 } from './ReactFiberHostConfig';
 import {OffscreenLane} from './ReactFiberLane.old';
 import {
@@ -80,10 +75,6 @@ import {
   restoreSuspendedTreeContext,
 } from './ReactFiberTreeContext.old';
 import {queueRecoverableErrors} from './ReactFiberWorkLoop.old';
-import {
-  getRootHostContainer,
-  getHostContext,
-} from './ReactFiberHostContext.old';
 
 // The deepest Fiber on the stack involved in a hydration context.
 // This may have been an insertion or a hydration.
@@ -114,7 +105,7 @@ export function markDidThrowWhileHydratingDEV() {
   }
 }
 
-export function didSuspendOrErrorWhileHydratingDEV(): boolean {
+export function didSuspendOrErrorWhileHydratingDEV() {
   if (__DEV__) {
     return didSuspendOrErrorDEV;
   }
@@ -171,7 +162,6 @@ function warnUnhydratedInstance(
         );
         break;
       }
-      case HostSingleton:
       case HostComponent: {
         const isConcurrentMode = (returnFiber.mode & ConcurrentMode) !== NoMode;
         didNotHydrateInstance(
@@ -228,7 +218,6 @@ function warnNonhydratedInstance(returnFiber: Fiber, fiber: Fiber) {
       case HostRoot: {
         const parentContainer = returnFiber.stateNode.containerInfo;
         switch (fiber.tag) {
-          case HostSingleton:
           case HostComponent:
             const type = fiber.type;
             const props = fiber.pendingProps;
@@ -253,13 +242,11 @@ function warnNonhydratedInstance(returnFiber: Fiber, fiber: Fiber) {
         }
         break;
       }
-      case HostSingleton:
       case HostComponent: {
         const parentType = returnFiber.type;
         const parentProps = returnFiber.memoizedProps;
         const parentInstance = returnFiber.stateNode;
         switch (fiber.tag) {
-          case HostSingleton:
           case HostComponent: {
             const type = fiber.type;
             const props = fiber.pendingProps;
@@ -306,7 +293,6 @@ function warnNonhydratedInstance(returnFiber: Fiber, fiber: Fiber) {
         const parentInstance = suspenseState.dehydrated;
         if (parentInstance !== null)
           switch (fiber.tag) {
-            case HostSingleton:
             case HostComponent:
               const type = fiber.type;
               const props = fiber.pendingProps;
@@ -343,8 +329,6 @@ function insertNonHydratedInstance(returnFiber: Fiber, fiber: Fiber) {
 
 function tryHydrate(fiber, nextInstance) {
   switch (fiber.tag) {
-    // HostSingleton is intentionally omitted. the hydration pathway for singletons is non-fallible
-    // you can find it inlined in claimHydratableSingleton
     case HostComponent: {
       const type = fiber.type;
       const props = fiber.pendingProps;
@@ -416,34 +400,8 @@ function throwOnHydrationMismatch(fiber: Fiber) {
   );
 }
 
-function claimHydratableSingleton(fiber: Fiber): void {
-  if (enableHostSingletons && supportsSingletons) {
-    if (!isHydrating) {
-      return;
-    }
-    const currentRootContainer = getRootHostContainer();
-    const currentHostContext = getHostContext();
-    const instance = (fiber.stateNode = resolveSingletonInstance(
-      fiber.type,
-      fiber.pendingProps,
-      currentRootContainer,
-      currentHostContext,
-      false,
-    ));
-    hydrationParentFiber = fiber;
-    nextHydratableInstance = getFirstHydratableChild(instance);
-  }
-}
-
 function tryToClaimNextHydratableInstance(fiber: Fiber): void {
   if (!isHydrating) {
-    return;
-  }
-  if (enableFloat && !isHydratable(fiber.type, fiber.pendingProps)) {
-    // This fiber never hydrates from the DOM and always does an insert
-    fiber.flags = (fiber.flags & ~Hydrating) | Placement;
-    isHydrating = false;
-    hydrationParentFiber = fiber;
     return;
   }
   let nextInstance = nextHydratableInstance;
@@ -486,6 +444,7 @@ function tryToClaimNextHydratableInstance(fiber: Fiber): void {
 
 function prepareToHydrateHostInstance(
   fiber: Fiber,
+  rootContainerInstance: Container,
   hostContext: HostContext,
 ): boolean {
   if (!supportsHydration) {
@@ -501,6 +460,7 @@ function prepareToHydrateHostInstance(
     instance,
     fiber.type,
     fiber.memoizedProps,
+    rootContainerInstance,
     hostContext,
     fiber,
     shouldWarnIfMismatchDev,
@@ -548,11 +508,9 @@ function prepareToHydrateHostTextInstance(fiber: Fiber): boolean {
             textContent,
             // TODO: Delete this argument when we remove the legacy root API.
             isConcurrentMode,
-            shouldWarnIfMismatchDev,
           );
           break;
         }
-        case HostSingleton:
         case HostComponent: {
           const parentType = returnFiber.type;
           const parentProps = returnFiber.memoizedProps;
@@ -567,7 +525,6 @@ function prepareToHydrateHostTextInstance(fiber: Fiber): boolean {
             textContent,
             // TODO: Delete this argument when we remove the legacy root API.
             isConcurrentMode,
-            shouldWarnIfMismatchDev,
           );
           break;
         }
@@ -628,10 +585,7 @@ function popToNextHostParent(fiber: Fiber): void {
     parent !== null &&
     parent.tag !== HostComponent &&
     parent.tag !== HostRoot &&
-    parent.tag !== SuspenseComponent &&
-    (!(enableHostSingletons && supportsSingletons)
-      ? true
-      : parent.tag !== HostSingleton)
+    parent.tag !== SuspenseComponent
   ) {
     parent = parent.return;
   }
@@ -656,35 +610,16 @@ function popHydrationState(fiber: Fiber): boolean {
     return false;
   }
 
-  let shouldClear = false;
-  if (enableHostSingletons && supportsSingletons) {
-    // With float we never clear the Root, or Singleton instances. We also do not clear Instances
-    // that have singleton text content
-    if (
-      fiber.tag !== HostRoot &&
-      fiber.tag !== HostSingleton &&
-      !(
-        fiber.tag === HostComponent &&
-        shouldSetTextContent(fiber.type, fiber.memoizedProps)
-      )
-    ) {
-      shouldClear = true;
-    }
-  } else {
-    // If we have any remaining hydratable nodes, we need to delete them now.
-    // We only do this deeper than head and body since they tend to have random
-    // other nodes in them. We also ignore components with pure text content in
-    // side of them. We also don't delete anything inside the root container.
-    if (
-      fiber.tag !== HostRoot &&
-      (fiber.tag !== HostComponent ||
-        (shouldDeleteUnhydratedTailInstances(fiber.type) &&
-          !shouldSetTextContent(fiber.type, fiber.memoizedProps)))
-    ) {
-      shouldClear = true;
-    }
-  }
-  if (shouldClear) {
+  // If we have any remaining hydratable nodes, we need to delete them now.
+  // We only do this deeper than head and body since they tend to have random
+  // other nodes in them. We also ignore components with pure text content in
+  // side of them. We also don't delete anything inside the root container.
+  if (
+    fiber.tag !== HostRoot &&
+    (fiber.tag !== HostComponent ||
+      (shouldDeleteUnhydratedTailInstances(fiber.type) &&
+        !shouldSetTextContent(fiber.type, fiber.memoizedProps)))
+  ) {
     let nextInstance = nextHydratableInstance;
     if (nextInstance) {
       if (shouldClientRenderOnMismatch(fiber)) {
@@ -709,7 +644,7 @@ function popHydrationState(fiber: Fiber): boolean {
   return true;
 }
 
-function hasUnhydratedTailNodes(): boolean {
+function hasUnhydratedTailNodes() {
   return isHydrating && nextHydratableInstance !== null;
 }
 
@@ -760,7 +695,6 @@ export {
   getIsHydrating,
   reenterHydrationStateFromDehydratedSuspenseInstance,
   resetHydrationState,
-  claimHydratableSingleton,
   tryToClaimNextHydratableInstance,
   prepareToHydrateHostInstance,
   prepareToHydrateHostTextInstance,

@@ -1,5 +1,5 @@
 /**
- * Copyright (c) Meta Platforms, Inc. and affiliates.
+ * Copyright (c) Facebook, Inc. and its affiliates.
  *
  * This source code is licensed under the MIT license found in the
  * LICENSE file in the root directory of this source tree.
@@ -15,7 +15,10 @@ import type {
 } from './ReactInternalTypes';
 import type {RootTag} from './ReactRootTags';
 import type {Cache} from './ReactFiberCacheComponent.new';
-import type {Container} from './ReactFiberHostConfig';
+import type {
+  PendingSuspenseBoundaries,
+  Transition,
+} from './ReactFiberTracingMarkerComponent.new';
 
 import {noTimeout, supportsHydration} from './ReactFiberHostConfig';
 import {createHostRootFiber} from './ReactFiber.new';
@@ -42,6 +45,8 @@ export type RootState = {
   element: any,
   isDehydrated: boolean,
   cache: Cache,
+  pendingSuspenseBoundaries: PendingSuspenseBoundaries | null,
+  transitions: Set<Transition> | null,
 };
 
 function FiberRootNode(
@@ -71,7 +76,6 @@ function FiberRootNode(
   this.expiredLanes = NoLanes;
   this.mutableReadLanes = NoLanes;
   this.finishedLanes = NoLanes;
-  this.errorRecoveryDisabledLanes = NoLanes;
 
   this.entangledLanes = NoLanes;
   this.entanglements = createLaneMap(NoLanes);
@@ -94,7 +98,6 @@ function FiberRootNode(
     this.hydrationCallbacks = null;
   }
 
-  this.incompleteTransitions = new Map();
   if (enableTransitionTracing) {
     this.transitionCallbacks = null;
     const transitionLanesMap = (this.transitionLanes = []);
@@ -129,7 +132,7 @@ function FiberRootNode(
 }
 
 export function createFiberRoot(
-  containerInfo: Container,
+  containerInfo: any,
   tag: RootTag,
   hydrate: boolean,
   initialChildren: ReactNodeList,
@@ -144,7 +147,6 @@ export function createFiberRoot(
   onRecoverableError: null | ((error: mixed) => void),
   transitionCallbacks: null | TransitionTracingCallbacks,
 ): FiberRoot {
-  // $FlowFixMe[invalid-constructor] Flow no longer supports calling new on functions
   const root: FiberRoot = (new FiberRootNode(
     containerInfo,
     tag,
@@ -187,6 +189,8 @@ export function createFiberRoot(
       element: initialChildren,
       isDehydrated: hydrate,
       cache: initialCache,
+      transitions: null,
+      pendingSuspenseBoundaries: null,
     };
     uninitializedFiber.memoizedState = initialState;
   } else {
@@ -194,6 +198,8 @@ export function createFiberRoot(
       element: initialChildren,
       isDehydrated: hydrate,
       cache: (null: any), // not enabled yet
+      transitions: null,
+      pendingSuspenseBoundaries: null,
     };
     uninitializedFiber.memoizedState = initialState;
   }

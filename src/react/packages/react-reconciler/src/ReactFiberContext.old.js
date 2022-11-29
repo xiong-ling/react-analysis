@@ -1,5 +1,5 @@
 /**
- * Copyright (c) Meta Platforms, Inc. and affiliates.
+ * Copyright (c) Facebook, Inc. and its affiliates.
  *
  * This source code is licensed under the MIT license found in the
  * LICENSE file in the root directory of this source tree.
@@ -24,8 +24,7 @@ if (__DEV__) {
   warnedAboutMissingGetChildContext = {};
 }
 
-// $FlowFixMe[incompatible-exact]
-export const emptyContextObject: {} = {};
+export const emptyContextObject = {};
 if (__DEV__) {
   Object.freeze(emptyContextObject);
 }
@@ -303,7 +302,7 @@ function findCurrentUnmaskedContext(fiber: Fiber): Object {
       );
     }
 
-    let node: Fiber = fiber;
+    let node = fiber;
     do {
       switch (node.tag) {
         case HostRoot:
@@ -316,7 +315,6 @@ function findCurrentUnmaskedContext(fiber: Fiber): Object {
           break;
         }
       }
-      // $FlowFixMe[incompatible-type] we bail out when we get a null
       node = node.return;
     } while (node !== null);
 

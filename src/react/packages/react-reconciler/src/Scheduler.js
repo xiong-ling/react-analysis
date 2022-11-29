@@ -1,5 +1,5 @@
 /**
- * Copyright (c) Meta Platforms, Inc. and affiliates.
+ * Copyright (c) Facebook, Inc. and its affiliates.
  *
  * This source code is licensed under the MIT license found in the
  * LICENSE file in the root directory of this source tree.
@@ -34,6 +34,5 @@ export type SchedulerCallback = (isSync: boolean) => SchedulerCallback | null;
 // export const unstable_setDisableYieldValue =
 //   Scheduler.unstable_setDisableYieldValue;
 
-// // UPDATE
 export const unstable_yieldValue = SchedulerMock.unstable_yieldValue;
 export const unstable_setDisableYieldValue = SchedulerMock.unstable_setDisableYieldValue;
